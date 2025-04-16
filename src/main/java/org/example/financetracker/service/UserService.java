@@ -1,51 +1,41 @@
 package org.example.financetracker.service;
 
-import jakarta.annotation.PostConstruct;
-import org.example.financetracker.dto.UserRegistrationDTO;
-import org.example.financetracker.entity.Role;
 import org.example.financetracker.entity.User;
-import org.example.financetracker.repository.RoleRepository;
 import org.example.financetracker.repository.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Set;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostConstruct
-    public void initRoles() {
-        if (roleRepository.findByName("USER").isEmpty()) {
-            Role userRole = new Role();
-            userRole.setName("USER");
-            roleRepository.save(userRole);
+    public void registerUser(User user) {
+        if (userRepository.existsByUsername(user.getUsername()) || userRepository.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException("Логин или email уже существуют");
         }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userRepository.save(user);
     }
 
-    public User register(UserRegistrationDTO dto) {
-        if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
-            throw new RuntimeException("Пользователь с таким именем уже существует");
-        }
 
-        Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RuntimeException("Роль USER не найдена"));
-
-        User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setRoles(Set.of(userRole));
-
-        return userRepository.save(user);
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        System.out.println("Attempting to load user: " + username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+        System.out.println("Найденный пользователь: " + user.getUsername() + ", пароль: " + user.getPassword());
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getUsername())
+                .password(user.getPassword())
+                .roles("USER")
+                .build();
     }
 }

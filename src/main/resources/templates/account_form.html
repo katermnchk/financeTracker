@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Finance Tracker - New Account</title>
+    <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<h1>Новый аккаунт</h1>
+<form th:action="@{/accounts}" th:object="${account}" method="post">
+    <label>Имя: <input type="text" th:field="*{name}" required/></label><br/>
+    <button type="submit">Сохранить</button>
+</form>
+<a href="/dashboard">Back to Dashboard</a>
+</body>
+</html>

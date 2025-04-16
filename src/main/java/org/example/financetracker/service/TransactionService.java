@@ -9,11 +9,12 @@ import org.example.financetracker.repository.AccountRepository;
 import org.example.financetracker.repository.CategoryRepository;
 import org.example.financetracker.repository.TransactionRepository;
 import org.example.financetracker.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -23,6 +24,7 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
 
+    @Autowired
     public TransactionService(TransactionRepository transactionRepository,
                               AccountRepository accountRepository,
                               CategoryRepository categoryRepository,
@@ -33,92 +35,76 @@ public class TransactionService {
         this.userRepository = userRepository;
     }
 
-    public TransactionDTO createTransaction(TransactionDTO dto, String username) {
+    public void createTransaction(TransactionDTO dto, String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
 
         Account account = accountRepository.findById(dto.getAccountId())
-                .orElseThrow(() -> new RuntimeException("Счет не найден"));
+                .filter(a -> a.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Счёт не найден"));
 
-        if (!account.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Счет не принадлежит пользователю");
-        }
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .filter(c -> c.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Категория не найдена"));
 
         Transaction transaction = new Transaction();
+        transaction.setAccount(account);
         transaction.setAmount(dto.getAmount());
         transaction.setType(dto.getType());
         transaction.setDescription(dto.getDescription());
-        transaction.setDate(dto.getDate());
-        transaction.setAccount(account);
-        transaction.setUser(user);
+        transaction.setDate(LocalDateTime.now());
+        transaction.setCategory(category);
 
-        if (dto.getCategoryId() != null) {
-            Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Категория не найдена"));
-            transaction.setCategory(category);
+        BigDecimal newBalance = account.getBalance();
+        if ("INCOME".equals(dto.getType())) {
+            newBalance = newBalance.add(dto.getAmount());
+        } else if ("EXPENSE".equals(dto.getType())) {
+            newBalance = newBalance.subtract(dto.getAmount());
         }
-
-        BigDecimal newBalance = "INCOME".equals(dto.getType())
-                ? account.getBalance().add(dto.getAmount())
-                : account.getBalance().subtract(dto.getAmount());
         account.setBalance(newBalance);
+
         accountRepository.save(account);
-
-        transaction = transactionRepository.save(transaction);
-        dto.setId(transaction.getId());
-        return dto;
+        transactionRepository.save(transaction);
     }
 
-    public List<TransactionDTO> getAllTransactionsByUser(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-        return transactionRepository.findAll().stream()
-                .filter(t -> t.getUser().getId().equals(user.getId()))
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public List<Transaction> getAccountTransactions(Account account) {
+        return transactionRepository.findByAccount(account);
     }
+
 
     public TransactionDTO getTransactionById(Long id, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
         Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Транзакция не найдена"));
-        if (!transaction.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Транзакция не принадлежит пользователю");
-        }
-        return toDTO(transaction);
+                .filter(t -> t.getAccount().getUser().getUsername().equals(username))
+                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена"));
+
+        TransactionDTO dto = new TransactionDTO();
+        dto.setId(transaction.getId());
+        dto.setAccountId(transaction.getAccount().getId());
+        dto.setCategoryId(transaction.getCategory().getId());
+        dto.setAmount(transaction.getAmount());
+        dto.setDescription(transaction.getDescription());
+        dto.setType(transaction.getType());
+        return dto;
     }
 
     public void deleteTransaction(Long id, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
         Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Транзакция не найдена"));
-        if (!transaction.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Транзакция не принадлежит пользователю");
-        }
+                .filter(t -> t.getAccount().getUser().getUsername().equals(username))
+                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена"));
 
         Account account = transaction.getAccount();
-        BigDecimal newBalance = "INCOME".equals(transaction.getType())
-                ? account.getBalance().subtract(transaction.getAmount())
-                : account.getBalance().add(transaction.getAmount());
+        BigDecimal newBalance = account.getBalance();
+        if ("INCOME".equals(transaction.getType())) {
+            newBalance = newBalance.subtract(transaction.getAmount());
+        } else if ("EXPENSE".equals(transaction.getType())) {
+            newBalance = newBalance.add(transaction.getAmount());
+        }
+
         account.setBalance(newBalance);
         accountRepository.save(account);
 
-        transactionRepository.deleteById(id);
+        transactionRepository.delete(transaction);
     }
 
-    private TransactionDTO toDTO(Transaction transaction) {
-        TransactionDTO dto = new TransactionDTO();
-        dto.setId(transaction.getId());
-        dto.setAmount(transaction.getAmount());
-        dto.setType(transaction.getType());
-        dto.setDescription(transaction.getDescription());
-        dto.setDate(transaction.getDate());
-        dto.setAccountId(transaction.getAccount().getId());
-        if (transaction.getCategory() != null) {
-            dto.setCategoryId(transaction.getCategory().getId());
-        }
-        return dto;
-    }
+
 }

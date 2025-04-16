@@ -1,28 +1,29 @@
 body {
-    font-family: Arial, sans-serif;
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-h2 {
-    text-align: center;
+
+.card {
+    border-radius: 10px;
 }
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+
+.card-header {
+    border-radius: 10px 10px 0 0;
 }
-input {
-    padding: 8px;
-    font-size: 16px;
+
+.invalid-feedback {
+    display: none;
 }
-button {
-    padding: 10px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
+
+.is-invalid ~ .invalid-feedback {
+    display: block;
 }
-button:hover {
-    background-color: #218838;
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #004085;
 }

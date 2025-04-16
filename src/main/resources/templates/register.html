@@ -1,25 +1,71 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Регистрация</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Finance Tracker - Регистрация</title>
+    <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/style.css"/>
 </head>
-<body>
-<h2>Регистрация</h2>
-<form th:action="@{/register}" th:object="${user}" method="post">
-    <div th:if="${error}" th:text="${error}" style="color: red;"></div>
-    <div>
-        <label for="username">Имя пользователя:</label>
-        <input type="text" id="username" th:field="*{username}">
-        <div th:errors="*{username}" style="color: red;"></div>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>Регистрация</h3>
+                </div>
+                <div class="card-body">
+                    <div th:if="${error != null}" class="alert alert-danger" th:text="${error}"></div>
+
+                    <form th:action="@{/register}" th:object="${user}" method="post" id="registerForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Логин</label>
+                            <input type="text" class="form-control" id="username" th:field="*{username}"
+                                   required minlength="3" maxlength="20" pattern="[a-zA-Z0-9]+"/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" th:field="*{email}" required/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Пароль</label>
+                            <input type="password" class="form-control" id="password" th:field="*{password}"
+                                   required minlength="6"/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Подтвердите пароль</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                   required minlength="6"/>
+                            <div class="invalid-feedback" id="confirmPasswordError">Пароли не совпадают</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+                    </form>
+                    <p class="mt-3 text-center">
+                        Уже есть аккаунт? <a th:href="@{/login}" class="text-primary">Войти</a>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="password">Пароль:</label>
-        <input type="password" id="password" th:field="*{password}">
-        <div th:errors="*{password}" style="color: red;"></div>
-    </div>
-    <button type="submit">Зарегистрироваться</button>
-</form>
-<p>Уже есть аккаунт? <a href="/login">Войти</a></p>
+</div>
+
+<script>
+    document.getElementById('registerForm').addEventListener('submit', function (event) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+
+        if (password !== confirmPassword) {
+            event.preventDefault();
+            confirmPasswordInput.classList.add('is-invalid');
+            document.getElementById('confirmPasswordError').style.display = 'block';
+        } else {
+            confirmPasswordInput.classList.remove('is-invalid');
+            document.getElementById('confirmPasswordError').style.display = 'none';
+        }
+    });
+</script>
 </body>
 </html>

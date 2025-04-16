@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Finance Tracker - Dashboard</title>
+    <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>Добро пожаловать, <span th:text="${username}"></span>!</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Ваши счета</h4>
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Баланс</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="account : ${accounts}">
+                            <td th:text="${account.name}"></td>
+                            <td th:text="${account.balance}"></td>
+                            <td>
+                                <a th:href="@{/transactions/{id}(id=${account.id})}" class="btn btn-info btn-sm">Транзакции</a>
+                                <form th:action="@{/account/delete/{id}(id=${account.id})}" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${accounts.empty}">
+                            <td colspan="3">Счетов нет</td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <h5>Добавить новый счет</h5>
+                    <form th:action="@{/account/add}" th:object="${newAccount}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название счета</label>
+                            <input type="text" class="form-control" id="name" th:field="*{name}" required/>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить счет</button>
+                    </form>
+
+                    <a th:href="@{/logout}" class="btn btn-secondary mt-3">Выйти</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

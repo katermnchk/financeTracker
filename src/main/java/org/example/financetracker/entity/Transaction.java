@@ -25,7 +25,7 @@ public class Transaction {
 
     private String description;
 
-    @Column(nullable = false)
+    @Column(name = "transaction_date", nullable = false)
     private LocalDateTime date;
 
     @ManyToOne
