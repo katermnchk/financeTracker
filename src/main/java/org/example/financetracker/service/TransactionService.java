@@ -1,110 +1,111 @@
 package org.example.financetracker.service;
 
+import jakarta.validation.Valid;
 import org.example.financetracker.dto.TransactionDTO;
-import org.example.financetracker.entity.Account;
-import org.example.financetracker.entity.Category;
-import org.example.financetracker.entity.Transaction;
-import org.example.financetracker.entity.User;
-import org.example.financetracker.repository.AccountRepository;
-import org.example.financetracker.repository.CategoryRepository;
+import org.example.financetracker.entity.*;
 import org.example.financetracker.repository.TransactionRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.example.financetracker.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final AccountRepository accountRepository;
-    private final CategoryRepository categoryRepository;
+    private final AccountService accountService;
+    private final CategoryService categoryService;
     private final UserRepository userRepository;
 
-    @Autowired
-    public TransactionService(TransactionRepository transactionRepository,
-                              AccountRepository accountRepository,
-                              CategoryRepository categoryRepository,
-                              UserRepository userRepository) {
-        this.transactionRepository = transactionRepository;
-        this.accountRepository = accountRepository;
-        this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
+    public List<Transaction> findAllByUser(User user) {
+        return transactionRepository.findAllByUser(user);
     }
 
-    public void createTransaction(TransactionDTO dto, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+    public TransactionDTO findTransactionDTOByIdAndUser(Long id, User user) {
+        Optional<Transaction> transactionOpt = transactionRepository.findByIdAndUser(id, user);
+        return transactionOpt.map(this::mapToDTO).orElse(null);
+    }
 
-        Account account = accountRepository.findById(dto.getAccountId())
-                .filter(a -> a.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Счёт не найден"));
+    @Transactional
+    public void saveTransaction(TransactionDTO dto, User user) {
+        Transaction transaction = mapToEntity(dto, user);
+        transactionRepository.save(transaction);
+    }
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .filter(c -> c.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Категория не найдена"));
+    @Transactional
+    public void updateTransaction(Long id, TransactionDTO dto, User user) {
+        Transaction existing = transactionRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Транзакция не найдена или недоступна"));
 
+        existing.setAccount(accountService.findByIdAndUser(dto.getAccountId(), user));
+        existing.setCategory(categoryService.findByIdAndUser(dto.getCategoryId(), user));
+        existing.setAmount(dto.getAmount());
+        existing.setType(dto.getType());
+        existing.setDescription(dto.getDescription());
+        existing.setDate(dto.getDate());
+
+        transactionRepository.save(existing);
+    }
+
+    @Transactional
+    public void deleteTransaction(Long id, User user) {
+        Transaction transaction = transactionRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Транзакция не найдена или недоступна"));
+        transactionRepository.delete(transaction);
+    }
+
+    private Transaction mapToEntity(TransactionDTO dto, User user) {
         Transaction transaction = new Transaction();
-        transaction.setAccount(account);
+        transaction.setUser(user);
+        transaction.setAccount(accountService.findByIdAndUser(dto.getAccountId(), user));
+        transaction.setCategory(categoryService.findByIdAndUser(dto.getCategoryId(), user));
         transaction.setAmount(dto.getAmount());
         transaction.setType(dto.getType());
         transaction.setDescription(dto.getDescription());
-        transaction.setDate(LocalDateTime.now());
-        transaction.setCategory(category);
+        transaction.setDate(dto.getDate());
+        return transaction;
+    }
 
-        BigDecimal newBalance = account.getBalance();
-        if ("INCOME".equals(dto.getType())) {
-            newBalance = newBalance.add(dto.getAmount());
-        } else if ("EXPENSE".equals(dto.getType())) {
-            newBalance = newBalance.subtract(dto.getAmount());
-        }
-        account.setBalance(newBalance);
-
-        accountRepository.save(account);
-        transactionRepository.save(transaction);
+    private TransactionDTO mapToDTO(Transaction transaction) {
+        TransactionDTO dto = new TransactionDTO();
+        dto.setAccountId(transaction.getAccount().getId());
+        dto.setCategoryId(transaction.getCategory().getId());
+        dto.setAmount(transaction.getAmount());
+        dto.setType(transaction.getType());
+        dto.setDescription(transaction.getDescription());
+        dto.setDate(transaction.getDate());
+        return dto;
     }
 
     public List<Transaction> getAccountTransactions(Account account) {
         return transactionRepository.findByAccount(account);
     }
 
+   /* @Transactional
+    public void createTransaction(@Valid TransactionDTO transactionDTO, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-    public TransactionDTO getTransactionById(Long id, String username) {
-        Transaction transaction = transactionRepository.findById(id)
-                .filter(t -> t.getAccount().getUser().getUsername().equals(username))
-                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена"));
+        Account account = accountService.findByIdAndUser(transactionDTO.getAccountId(), user);
+        Category category = categoryService.findByIdAndUser(transactionDTO.getCategoryId(), user);
 
-        TransactionDTO dto = new TransactionDTO();
-        dto.setId(transaction.getId());
-        dto.setAccountId(transaction.getAccount().getId());
-        dto.setCategoryId(transaction.getCategory().getId());
-        dto.setAmount(transaction.getAmount());
-        dto.setDescription(transaction.getDescription());
-        dto.setType(transaction.getType());
-        return dto;
-    }
+        Transaction transaction = mapToEntity(transactionDTO, user);
 
-    public void deleteTransaction(Long id, String username) {
-        Transaction transaction = transactionRepository.findById(id)
-                .filter(t -> t.getAccount().getUser().getUsername().equals(username))
-                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена"));
+        transactionRepository.save(transaction);
+    }*/
+   @Transactional
+   public void createTransaction(@Valid TransactionDTO transactionDTO, User user) {
+       Account account = accountService.findByIdAndUser(transactionDTO.getAccountId(), user);
+       Category category = categoryService.findByIdAndUser(transactionDTO.getCategoryId(), user);
 
-        Account account = transaction.getAccount();
-        BigDecimal newBalance = account.getBalance();
-        if ("INCOME".equals(transaction.getType())) {
-            newBalance = newBalance.subtract(transaction.getAmount());
-        } else if ("EXPENSE".equals(transaction.getType())) {
-            newBalance = newBalance.add(transaction.getAmount());
-        }
+       Transaction transaction = mapToEntity(transactionDTO, user);
 
-        account.setBalance(newBalance);
-        accountRepository.save(account);
-
-        transactionRepository.delete(transaction);
-    }
+       transactionRepository.save(transaction);
+   }
 
 
 }

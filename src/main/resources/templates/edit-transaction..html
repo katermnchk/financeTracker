@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование транзакции</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<h1>Редактирование транзакции</h1>
+
+<form th:action="@{/transactions/edit}" th:object="${transaction}" method="post">
+    <input type="hidden" th:field="*{id}"/>
+
+    <label for="accountId">Счёт:</label>
+    <select th:field="*{accountId}">
+        <option th:each="account : ${accounts}"
+                th:value="${account.id}"
+                th:text="${account.name}">Счёт</option>
+    </select>
+    <br/>
+
+    <label for="categoryId">Категория:</label>
+    <select th:field="*{categoryId}">
+        <option th:each="category : ${categories}"
+                th:value="${category.id}"
+                th:text="${category.name}">Категория</option>
+    </select>
+    <br/>
+
+    <label for="amount">Сумма:</label>
+    <input type="number" step="0.01" th:field="*{amount}"/>
+    <br/>
+
+    <label for="type">Тип:</label>
+    <select th:field="*{type}">
+        <option value="INCOME">Доход</option>
+        <option value="EXPENSE">Расход</option>
+    </select>
+    <br/>
+
+    <label for="description">Описание:</label>
+    <input type="text" th:field="*{description}"/>
+    <br/>
+
+    <button type="submit">Сохранить</button>
+    <a th:href="@{/transactions}">Отмена</a>
+</form>
+</body>
+</html>

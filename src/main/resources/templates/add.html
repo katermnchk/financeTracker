@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Finance Tracker - Добавить транзакцию</title>
+    <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="text-center">Добавить транзакцию</h3>
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                    <div th:if="${param.success}" class="alert alert-success">Транзакция успешно добавлена</div>
+                    <form th:action="@{/transactions/add}" th:object="${transaction}" method="post" id="transactionForm" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="accountId" class="form-label">Счёт</label>
+                            <select class="form-control" id="accountId" th:field="*{accountId}" required>
+                                <option value="">Выберите счёт</option>
+                                <option th:each="account : ${accounts}"
+                                        th:value="${account.id}"
+                                        th:text="${account.name}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{accountId}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryId" class="form-label">Категория</label>
+                            <select class="form-control" id="categoryId" th:field="*{categoryId}">
+                                <option value="">Без категории</option>
+                                <option th:each="category : ${categories}"
+                                        th:value="${category.id}"
+                                        th:text="${category.name}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{categoryId}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Сумма</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" th:field="*{amount}" required/>
+                            <div class="invalid-feedback" th:errors="*{amount}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Тип</label>
+                            <select class="form-control" id="type" th:field="*{type}" required>
+                                <option value="">Выберите тип</option>
+                                <option value="INCOME">Доход</option>
+                                <option value="EXPENSE">Расход</option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{type}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание</label>
+                            <input type="text" class="form-control" id="description" th:field="*{description}"/>
+                            <div class="invalid-feedback" th:errors="*{description}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Дата</label>
+                            <input type="datetime-local" class="form-control" id="date" th:field="*{date}" required/>
+                            <div class="invalid-feedback" th:errors="*{date}"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить транзакцию</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        'use strict';
+        const form = document.getElementById('transactionForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    })();
+</script>
+</body>
+</html>

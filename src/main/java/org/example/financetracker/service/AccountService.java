@@ -40,4 +40,15 @@ public class AccountService {
         }
         return accountRepository.save(account);
     }
+
+    public Account findByIdAndUser(Long accountId, User user) {
+        return accountRepository.findById(accountId)
+                .filter(account -> account.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new SecurityException("Счёт не найден или доступ запрещён"));
+    }
+
+    public List<Account> findAllByUser(User user) {
+        return accountRepository.findByUser(user);
+    }
+
 }
