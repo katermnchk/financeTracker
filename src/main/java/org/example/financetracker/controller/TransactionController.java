@@ -1,96 +1,119 @@
 package org.example.financetracker.controller;
 
+import jakarta.validation.Valid;
 import org.example.financetracker.dto.TransactionDTO;
+import org.example.financetracker.entity.Category;
+import org.example.financetracker.entity.Transaction;
 import org.example.financetracker.entity.User;
+import org.example.financetracker.security.CustomUserDetails;
 import org.example.financetracker.service.AccountService;
 import org.example.financetracker.service.CategoryService;
 import org.example.financetracker.service.TransactionService;
-import org.example.financetracker.service.UserService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Controller
-@RequiredArgsConstructor
 @RequestMapping("/transactions")
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private final AccountService accountService;
     private final CategoryService categoryService;
-    private final UserService userService;
+    private final AccountService accountService;
 
-    @GetMapping({"/add", "/edit/{id}"})
-    public String showTransactionForm(@PathVariable(name = "id", required = false) Long id,
-                                      @AuthenticationPrincipal UserDetails userDetails,
-                                      Model model) {
-        User currentUser = userService.findByEmail(userDetails.getUsername());
+    public TransactionController(TransactionService transactionService,
+                                 CategoryService categoryService,
+                                 AccountService accountService) {
+        this.transactionService = transactionService;
+        this.categoryService = categoryService;
+        this.accountService = accountService;
+    }
 
-        TransactionDTO transactionDTO;
-        if (id != null) {
-            transactionDTO = transactionService.findTransactionDTOByIdAndUser(id, currentUser);
-            if (transactionDTO == null) {
-                return "redirect:/dashboard";
-            }
-        } else {
-            transactionDTO = new TransactionDTO();
+    @GetMapping("/add")
+    public String showAddTransactionForm(Model model, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            System.out.println("User is not authenticated");
+            return "redirect:/login";
         }
-
-        model.addAttribute("transaction", transactionDTO);
-        model.addAttribute("accounts", accountService.findAllByUser(currentUser));
-        model.addAttribute("categories", categoryService.findAllByUser(currentUser));
-        model.addAttribute("transactions", transactionService.findAllByUser(currentUser));
-
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        System.out.println("Authenticated user: " + user.getId() + ", username: " + user.getUsername());
+        List<Category> availableCategories = categoryService.getAvailableCategories(user);
+        System.out.println("Loading add form for user " + user.getId() + " with categories: " + availableCategories);
+        model.addAttribute("transaction", new TransactionDTO());
+        model.addAttribute("availableCategories", availableCategories);
+        model.addAttribute("accounts", accountService.getAccountsByUser(user));
         return "transaction-form";
     }
 
     @PostMapping("/add")
-    public String addTransaction(@Valid @ModelAttribute("transaction") TransactionDTO transactionDTO,
-                                 BindingResult bindingResult,
-                                 @AuthenticationPrincipal UserDetails userDetails,
+    public String addTransaction(@ModelAttribute("transaction") @Valid TransactionDTO transactionDTO,
+                                 BindingResult result,
+                                 Authentication authentication,
                                  Model model) {
-        User currentUser = userService.findByEmail(userDetails.getUsername());
-
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("accounts", accountService.findAllByUser(currentUser));
-            model.addAttribute("categories", categoryService.findAllByUser(currentUser));
-            model.addAttribute("transactions", transactionService.findAllByUser(currentUser));
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        if (result.hasErrors()) {
+            List<Category> availableCategories = categoryService.getAvailableCategories(user);
+            System.out.println("Validation errors for user " + user.getId() + " with categories: " + availableCategories);
+            model.addAttribute("availableCategories", availableCategories);
+            model.addAttribute("accounts", accountService.getAccountsByUser(user));
             return "transaction-form";
         }
-
-        transactionService.saveTransaction(transactionDTO, currentUser);
+        transactionService.saveTransaction(transactionDTO, user);
         return "redirect:/dashboard";
+    }
+
+    @GetMapping("/edit/{id}")
+    public String showEditTransactionForm(@PathVariable Long id, Model model, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        Transaction transaction = transactionService.findByIdAndUser(id, user);
+        TransactionDTO transactionDTO = new TransactionDTO();
+        transactionDTO.setId(transaction.getId());
+        transactionDTO.setAmount(transaction.getAmount());
+        transactionDTO.setType(transaction.getType());
+        transactionDTO.setDescription(transaction.getDescription());
+        transactionDTO.setDate(transaction.getDate());
+        transactionDTO.setAccountId(transaction.getAccount().getId());
+        transactionDTO.setCategoryId(transaction.getCategory().getId());
+        List<Category> availableCategories = categoryService.getAvailableCategories(user);
+        System.out.println("Loading edit form for user " + user.getId() + " with categories: " + availableCategories);
+        model.addAttribute("transaction", transactionDTO);
+        model.addAttribute("availableCategories", availableCategories);
+        model.addAttribute("accounts", accountService.getAccountsByUser(user));
+        return "transaction-form";
     }
 
     @PostMapping("/edit/{id}")
     public String editTransaction(@PathVariable Long id,
-                                  @Valid @ModelAttribute("transaction") TransactionDTO transactionDTO,
-                                  BindingResult bindingResult,
-                                  @AuthenticationPrincipal UserDetails userDetails,
+                                  @ModelAttribute("transaction") @Valid TransactionDTO transactionDTO,
+                                  BindingResult result,
+                                  Authentication authentication,
                                   Model model) {
-        User currentUser = userService.findByEmail(userDetails.getUsername());
-
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("accounts", accountService.findAllByUser(currentUser));
-            model.addAttribute("categories", categoryService.findAllByUser(currentUser));
-            model.addAttribute("transactions", transactionService.findAllByUser(currentUser));
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        if (result.hasErrors()) {
+            List<Category> availableCategories = categoryService.getAvailableCategories(user);
+            System.out.println("Validation errors for user " + user.getId() + " with categories: " + availableCategories);
+            model.addAttribute("availableCategories", availableCategories);
+            model.addAttribute("accounts", accountService.getAccountsByUser(user));
             return "transaction-form";
         }
-
-        transactionService.updateTransaction(id, transactionDTO, currentUser);
+        transactionDTO.setId(id);
+        transactionService.updateTransaction(transactionDTO, user);
         return "redirect:/dashboard";
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteTransaction(@PathVariable Long id,
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-        User currentUser = userService.findByEmail(userDetails.getUsername());
-        transactionService.deleteTransaction(id, currentUser);
+    public String deleteTransaction(@PathVariable Long id, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        transactionService.deleteTransaction(id, user);
         return "redirect:/dashboard";
     }
 }

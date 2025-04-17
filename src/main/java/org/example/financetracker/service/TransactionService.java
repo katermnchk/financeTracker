@@ -1,111 +1,129 @@
 package org.example.financetracker.service;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.example.financetracker.dto.TransactionDTO;
-import org.example.financetracker.entity.*;
+import org.example.financetracker.entity.Account;
+import org.example.financetracker.entity.Category;
+import org.example.financetracker.entity.Transaction;
+import org.example.financetracker.entity.User;
+import org.example.financetracker.repository.AccountRepository;
+import org.example.financetracker.repository.CategoryRepository;
 import org.example.financetracker.repository.TransactionRepository;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.example.financetracker.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final AccountService accountService;
-    private final CategoryService categoryService;
-    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
 
-    public List<Transaction> findAllByUser(User user) {
-        return transactionRepository.findAllByUser(user);
-    }
-
-    public TransactionDTO findTransactionDTOByIdAndUser(Long id, User user) {
-        Optional<Transaction> transactionOpt = transactionRepository.findByIdAndUser(id, user);
-        return transactionOpt.map(this::mapToDTO).orElse(null);
-    }
-
-    @Transactional
-    public void saveTransaction(TransactionDTO dto, User user) {
-        Transaction transaction = mapToEntity(dto, user);
-        transactionRepository.save(transaction);
+    public TransactionService(TransactionRepository transactionRepository,
+                              AccountRepository accountRepository,
+                              CategoryRepository categoryRepository) {
+        this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Transactional
-    public void updateTransaction(Long id, TransactionDTO dto, User user) {
-        Transaction existing = transactionRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new RuntimeException("Транзакция не найдена или недоступна"));
+    public void saveTransaction(@Valid TransactionDTO transactionDTO, User user) {
+        System.out.println("Saving transaction with DTO: " + transactionDTO);
+        if (transactionDTO == null) {
+            throw new IllegalArgumentException("TransactionDTO cannot be null");
+        }
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        Transaction transaction = new Transaction();
+        transaction.setAccount(accountRepository.findById(transactionDTO.getAccountId())
+                .orElseThrow(() -> new IllegalArgumentException("Account not found with ID: " + transactionDTO.getAccountId())));
+        Category category = categoryRepository.findById(transactionDTO.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with ID: " + transactionDTO.getCategoryId()));
+        if (!category.getIsDefault() && (category.getUser() == null || !category.getUser().getId().equals(user.getId()))) {
+            throw new SecurityException("Category is not accessible to this user");
+        }
+        transaction.setCategory(category);
+        if (transactionDTO.getAmount() == null) {
+            throw new IllegalArgumentException("Amount cannot be null");
+        }
+        transaction.setAmount(transactionDTO.getAmount());
+        if (transactionDTO.getType() == null) {
+            throw new IllegalArgumentException("Type cannot be null");
+        }
+        transaction.setType(transactionDTO.getType());
+        transaction.setDescription(transactionDTO.getDescription());
+        LocalDateTime transactionDate = transactionDTO.getDate() != null ? transactionDTO.getDate() : LocalDateTime.now();
+        System.out.println("Setting transaction date: " + transactionDate);
+        transaction.setDate(transactionDate);
+        transaction.setUser(user);
+        try {
+            transactionRepository.save(transaction);
+            System.out.println("Transaction saved successfully: " + transaction);
+        } catch (Exception e) {
+            System.err.println("Error saving transaction: " + e.getMessage());
+            throw new RuntimeException("Failed to save transaction", e);
+        }
+    }
 
-        existing.setAccount(accountService.findByIdAndUser(dto.getAccountId(), user));
-        existing.setCategory(categoryService.findByIdAndUser(dto.getCategoryId(), user));
-        existing.setAmount(dto.getAmount());
-        existing.setType(dto.getType());
-        existing.setDescription(dto.getDescription());
-        existing.setDate(dto.getDate());
+    @Transactional
+    public void updateTransaction(@Valid TransactionDTO transactionDTO, User user) {
+        System.out.println("Updating transaction with DTO: " + transactionDTO);
+        if (transactionDTO == null || transactionDTO.getId() == null) {
+            throw new IllegalArgumentException("TransactionDTO or ID cannot be null");
+        }
+        Transaction transaction = transactionRepository.findById(transactionDTO.getId())
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found or access denied"));
+        transaction.setAccount(accountRepository.findById(transactionDTO.getAccountId())
+                .orElseThrow(() -> new IllegalArgumentException("Account not found with ID: " + transactionDTO.getAccountId())));
+        Category category = categoryRepository.findById(transactionDTO.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with ID: " + transactionDTO.getCategoryId()));
 
-        transactionRepository.save(existing);
+        if (!category.getIsDefault() && (category.getUser() == null || !category.getUser().getId().equals(user.getId()))) {
+            throw new SecurityException("Category is not accessible to this user");
+        }
+        transaction.setCategory(category);
+        if (transactionDTO.getAmount() == null) {
+            throw new IllegalArgumentException("Amount cannot be null");
+        }
+        transaction.setAmount(transactionDTO.getAmount());
+        if (transactionDTO.getType() == null) {
+            throw new IllegalArgumentException("Type cannot be null");
+        }
+        transaction.setType(transactionDTO.getType());
+        transaction.setDescription(transactionDTO.getDescription());
+        LocalDateTime transactionDate = transactionDTO.getDate() != null ? transactionDTO.getDate() : LocalDateTime.now();
+        System.out.println("Setting transaction date: " + transactionDate);
+        transaction.setDate(transactionDate);
+        try {
+            transactionRepository.save(transaction);
+            System.out.println("Transaction updated successfully: " + transaction);
+        } catch (Exception e) {
+            System.err.println("Error updating transaction: " + e.getMessage());
+            throw new RuntimeException("Failed to update transaction", e);
+        }
     }
 
     @Transactional
     public void deleteTransaction(Long id, User user) {
-        Transaction transaction = transactionRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new RuntimeException("Транзакция не найдена или недоступна"));
+        Transaction transaction = transactionRepository.findById(id)
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found or access denied"));
         transactionRepository.delete(transaction);
     }
 
-    private Transaction mapToEntity(TransactionDTO dto, User user) {
-        Transaction transaction = new Transaction();
-        transaction.setUser(user);
-        transaction.setAccount(accountService.findByIdAndUser(dto.getAccountId(), user));
-        transaction.setCategory(categoryService.findByIdAndUser(dto.getCategoryId(), user));
-        transaction.setAmount(dto.getAmount());
-        transaction.setType(dto.getType());
-        transaction.setDescription(dto.getDescription());
-        transaction.setDate(dto.getDate());
-        return transaction;
-    }
-
-    private TransactionDTO mapToDTO(Transaction transaction) {
-        TransactionDTO dto = new TransactionDTO();
-        dto.setAccountId(transaction.getAccount().getId());
-        dto.setCategoryId(transaction.getCategory().getId());
-        dto.setAmount(transaction.getAmount());
-        dto.setType(transaction.getType());
-        dto.setDescription(transaction.getDescription());
-        dto.setDate(transaction.getDate());
-        return dto;
+    public Transaction findByIdAndUser(Long id, User user) {
+        return transactionRepository.findById(id)
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found or access denied"));
     }
 
     public List<Transaction> getAccountTransactions(Account account) {
         return transactionRepository.findByAccount(account);
     }
-
-   /* @Transactional
-    public void createTransaction(@Valid TransactionDTO transactionDTO, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-        Account account = accountService.findByIdAndUser(transactionDTO.getAccountId(), user);
-        Category category = categoryService.findByIdAndUser(transactionDTO.getCategoryId(), user);
-
-        Transaction transaction = mapToEntity(transactionDTO, user);
-
-        transactionRepository.save(transaction);
-    }*/
-   @Transactional
-   public void createTransaction(@Valid TransactionDTO transactionDTO, User user) {
-       Account account = accountService.findByIdAndUser(transactionDTO.getAccountId(), user);
-       Category category = categoryService.findByIdAndUser(transactionDTO.getCategoryId(), user);
-
-       Transaction transaction = mapToEntity(transactionDTO, user);
-
-       transactionRepository.save(transaction);
-   }
-
-
 }

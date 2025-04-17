@@ -17,6 +17,7 @@
                     <form th:if="${transaction.id != null}"
                           th:action="@{/transactions/edit/{id}(id=${transaction.id})}"
                           th:object="${transaction}" method="post">
+
                         <div class="mb-3">
                             <label for="accountId" class="form-label">Счёт</label>
                             <select class="form-control" id="accountId" th:field="*{accountId}" required>
@@ -31,7 +32,7 @@
                             <label for="categoryId" class="form-label">Категория</label>
                             <select class="form-control" id="categoryId" th:field="*{categoryId}" required>
                                 <option value="">Выберите категорию</option>
-                                <option th:each="category : ${categories}"
+                                <option th:each="category : ${availableCategories}"
                                         th:value="${category.id}"
                                         th:text="${category.name}"></option>
                             </select>
@@ -68,7 +69,7 @@
                           th:object="${transaction}" method="post">
 
                         <div class="mb-3">
-                            <label for="accountId" class="form-label">Счёт</label>
+                            <label for="new-accountId" class="form-label">Счёт</label>
                             <select class="form-control" id="new-accountId" th:field="*{accountId}" required>
                                 <option value="">Выберите счёт</option>
                                 <option th:each="account : ${accounts}"
@@ -77,49 +78,42 @@
                             </select>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('accountId')}" th:errors="*{accountId}"></div>
                         </div>
-
                         <div class="mb-3">
-                            <label for="categoryId" class="form-label">Категория</label>
+                            <label for="new-categoryId" class="form-label">Категория</label>
                             <select class="form-control" id="new-categoryId" th:field="*{categoryId}" required>
                                 <option value="">Выберите категорию</option>
-                                <option th:each="category : ${categories}"
+                                <option th:each="category : ${availableCategories}"
                                         th:value="${category.id}"
                                         th:text="${category.name}"></option>
                             </select>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></div>
                         </div>
-
                         <div class="mb-3">
-                            <label for="amount" class="form-label">Сумма</label>
+                            <label for="new-amount" class="form-label">Сумма</label>
                             <input type="number" step="0.01" class="form-control" id="new-amount" th:field="*{amount}" required/>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></div>
                         </div>
-
                         <div class="mb-3">
-                            <label for="type" class="form-label">Тип</label>
+                            <label for="new-type" class="form-label">Тип</label>
                             <select class="form-control" id="new-type" th:field="*{type}" required>
                                 <option value="INCOME">Доход</option>
                                 <option value="EXPENSE">Расход</option>
                             </select>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></div>
                         </div>
-
                         <div class="mb-3">
-                            <label for="description" class="form-label">Описание</label>
+                            <label for="new-description" class="form-label">Описание</label>
                             <input type="text" class="form-control" id="new-description" th:field="*{description}"/>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
                         </div>
-
                         <div class="mb-3">
-                            <label for="date" class="form-label">Дата</label>
+                            <label for="new-date" class="form-label">Дата</label>
                             <input type="datetime-local" class="form-control" id="new-date" th:field="*{date}" required/>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('date')}" th:errors="*{date}"></div>
                         </div>
-
                         <button type="submit" class="btn btn-primary">Сохранить транзакцию</button>
                         <a th:href="@{/dashboard}" class="btn btn-secondary ms-2">Отмена</a>
                     </form>
-
                     <h4 class="mt-4" th:if="${transactions != null and !transactions.isEmpty()}">История транзакций</h4>
                     <table class="table table-bordered" th:if="${transactions != null and !transactions.isEmpty()}">
                         <thead>
@@ -140,6 +134,7 @@
                             <td>
                                 <a th:href="@{/transactions/edit/{id}(id=${transaction.id})}" class="btn btn-info btn-sm">Редактировать</a>
                                 <form th:action="@{/transactions/delete/{id}(id=${transaction.id})}" method="post" style="display:inline;">
+
                                     <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                                 </form>
                             </td>

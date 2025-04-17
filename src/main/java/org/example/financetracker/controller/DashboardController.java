@@ -112,7 +112,7 @@ public class DashboardController {
         return "transaction-form";
     }
 
-   /* @PostMapping("/transaction/add/{accountId}")
+    @PostMapping("/transaction/add/{accountId}")
     public String addTransaction(@PathVariable Long accountId,
                                  @Valid @ModelAttribute("transaction") TransactionDTO transactionDTO,
                                  BindingResult result,
@@ -143,8 +143,8 @@ public class DashboardController {
         transactionDTO.setAccountId(accountId);
         transactionService.createTransaction(transactionDTO, userDetails.getUsername());
         return "redirect:/transactions/" + accountId;
-    }*/
-   @PostMapping("/transaction/add/{accountId}")
+    }
+    @PostMapping("/transaction/add/{accountId}")
    public String addTransaction(@PathVariable Long accountId,
                                 @Valid @ModelAttribute("transaction") TransactionDTO transactionDTO,
                                 BindingResult result,

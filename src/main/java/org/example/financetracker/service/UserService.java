@@ -46,4 +46,8 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + email));
     }
 
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+    }
 }
