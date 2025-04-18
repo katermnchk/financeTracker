@@ -1,13 +1,16 @@
 package org.example.financetracker.service;
 
+import jakarta.transaction.Transactional;
+import org.example.financetracker.dto.UserProfileDTO;
 import org.example.financetracker.entity.User;
 import org.example.financetracker.repository.UserRepository;
 
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -24,6 +27,8 @@ public class UserService {
         if (userRepository.existsByUsername(user.getUsername()) || userRepository.existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException("Логин или email уже существуют");
         }
+        user.setFirstName(user.getFirstName());
+        user.setLastName(user.getLastName());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
     }
@@ -49,5 +54,32 @@ public class UserService {
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+    }
+
+    @Transactional
+    public UserProfileDTO getUserProfile(User user) {
+        UserProfileDTO dto = new UserProfileDTO();
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        return dto;
+    }
+
+
+    public boolean updateUserProfile(String username, UserProfileDTO profileDTO) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+
+
+        user.setFirstName(profileDTO.getFirstName());
+        user.setLastName(profileDTO.getLastName());
+        user.setEmail(profileDTO.getEmail());
+
+        if (profileDTO.getPassword() != null && !profileDTO.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(profileDTO.getPassword()));
+        }
+
+        userRepository.save(user);
+        return true;
     }
 }

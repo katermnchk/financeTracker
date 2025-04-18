@@ -16,6 +16,7 @@
                 <div class="card-body">
                     <div th:if="${param.success}" class="alert alert-success">Профиль успешно обновлён</div>
                     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
                     <form th:action="@{/profile}" th:object="${profile}" method="post" class="needs-validation" novalidate>
                         <div class="mb-3">
                             <label for="firstName" class="form-label">Имя</label>
@@ -37,6 +38,7 @@
                             <input type="password" class="form-control" id="password" th:field="*{password}"/>
                             <div class="invalid-feedback" th:errors="*{password}"></div>
                         </div>
+
                         <button type="submit" class="btn btn-primary">Сохранить изменения</button>
                         <a th:href="@{/dashboard}" class="btn btn-secondary ms-2">Назад</a>
                     </form>
@@ -45,6 +47,7 @@
         </div>
     </div>
 </div>
+
 <script>
     (function () {
         'use strict';
