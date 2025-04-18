@@ -3,14 +3,18 @@ package org.example.financetracker.controller;
 import jakarta.validation.Valid;
 import org.example.financetracker.dto.TransactionDTO;
 import org.example.financetracker.entity.Account;
+import org.example.financetracker.entity.Category;
 import org.example.financetracker.entity.Transaction;
 import org.example.financetracker.entity.User;
 import org.example.financetracker.repository.AccountRepository;
 import org.example.financetracker.repository.CategoryRepository;
 import org.example.financetracker.repository.UserRepository;
+import org.example.financetracker.security.CustomUserDetails;
 import org.example.financetracker.service.AccountService;
+import org.example.financetracker.service.CategoryService;
 import org.example.financetracker.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -29,16 +33,18 @@ public class DashboardController {
     private final TransactionService transactionService;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
 
     @Autowired
     public DashboardController(UserRepository userRepository, AccountService accountService,
                                TransactionService transactionService, AccountRepository accountRepository,
-                               CategoryRepository categoryRepository) {
+                               CategoryRepository categoryRepository, CategoryService categoryService) {
         this.userRepository = userRepository;
         this.accountService = accountService;
         this.transactionService = transactionService;
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
+        this.categoryService = categoryService;
     }
 
     @GetMapping("/dashboard")
@@ -103,14 +109,17 @@ public class DashboardController {
         TransactionDTO transactionDTO = new TransactionDTO();
         transactionDTO.setAccountId(accountId);
 
+        List<Category> availableCategories = categoryService.getAvailableCategories(user);
         model.addAttribute("account", account);
         model.addAttribute("transactions", transactions);
         model.addAttribute("transaction", transactionDTO);
+        model.addAttribute("availableCategories", availableCategories);
         model.addAttribute("accounts", accountRepository.findByUser(user));
         model.addAttribute("categories", categoryRepository.findByUser(user));
 
         return "transaction-form";
     }
+
 
     @PostMapping("/transaction/add/{accountId}")
     public String addTransaction(@PathVariable Long accountId,
@@ -126,6 +135,7 @@ public class DashboardController {
 
         User user = userOptional.get();
         if (result.hasErrors()) {
+            List<Category> availableCategories = categoryService.getAvailableCategories(user);
             Optional<Account> accountOptional = accountService.getUserAccounts(user)
                     .stream()
                     .filter(a -> a.getId().equals(accountId))
@@ -136,15 +146,16 @@ public class DashboardController {
             model.addAttribute("account", account);
             model.addAttribute("transactions", transactionService.getAccountTransactions(account));
             model.addAttribute("accounts", accountRepository.findByUser(user));
+            model.addAttribute("availableCategories", availableCategories);
             model.addAttribute("categories", categoryRepository.findByUser(user));
             return "transaction-form";
         }
 
         transactionDTO.setAccountId(accountId);
-        transactionService.createTransaction(transactionDTO, userDetails.getUsername());
+        transactionService.createTransaction(transactionDTO, user);
         return "redirect:/transactions/" + accountId;
     }
-    @PostMapping("/transaction/add/{accountId}")
+  /*  @PostMapping("/transaction/add/{accountId}")
    public String addTransaction(@PathVariable Long accountId,
                                 @Valid @ModelAttribute("transaction") TransactionDTO transactionDTO,
                                 BindingResult result,
@@ -178,7 +189,7 @@ public class DashboardController {
        transactionService.createTransaction(transactionDTO, user);
 
        return "redirect:/transactions/" + accountId;
-   }
+   }*/
 
 
 

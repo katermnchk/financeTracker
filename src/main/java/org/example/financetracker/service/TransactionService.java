@@ -126,4 +126,8 @@ public class TransactionService {
     public List<Transaction> getAccountTransactions(Account account) {
         return transactionRepository.findByAccount(account);
     }
+
+    public void createTransaction(@Valid TransactionDTO transactionDTO, User user) {
+
+    }
 }
