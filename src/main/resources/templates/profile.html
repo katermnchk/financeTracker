@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Finance Tracker - Профиль</title>
+    <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>Профиль пользователя: <span th:text="${username}"></span></h3>
+                </div>
+                <div class="card-body">
+                    <div th:if="${param.success}" class="alert alert-success">Профиль успешно обновлён</div>
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                    <form th:action="@{/profile}" th:object="${profile}" method="post" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="firstName" class="form-label">Имя</label>
+                            <input type="text" class="form-control" id="firstName" th:field="*{firstName}" required/>
+                            <div class="invalid-feedback" th:errors="*{firstName}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lastName" class="form-label">Фамилия</label>
+                            <input type="text" class="form-control" id="lastName" th:field="*{lastName}" required/>
+                            <div class="invalid-feedback" th:errors="*{lastName}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" th:field="*{email}" required/>
+                            <div class="invalid-feedback" th:errors="*{email}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Новый пароль (оставьте пустым, если не меняете)</label>
+                            <input type="password" class="form-control" id="password" th:field="*{password}"/>
+                            <div class="invalid-feedback" th:errors="*{password}"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        <a th:href="@{/dashboard}" class="btn btn-secondary ms-2">Назад</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        'use strict';
+        const form = document.querySelector('.needs-validation');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    })();
+</script>
+</body>
+</html>
