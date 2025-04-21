@@ -65,19 +65,29 @@ public class UserService {
         return dto;
     }
 
-
+    @Transactional
     public boolean updateUserProfile(String username, UserProfileDTO profileDTO) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
 
+        if (!passwordEncoder.matches(profileDTO.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Неверный текущий пароль");
+        }
+
+        if (!profileDTO.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(profileDTO.getEmail())) {
+            throw new IllegalArgumentException("Email уже используется");
+        }
+
+        if (profileDTO.getPassword() != null && !profileDTO.getPassword().isEmpty()) {
+            if (!profileDTO.getPassword().equals(profileDTO.getConfirmPassword())) {
+                throw new IllegalArgumentException("Пароли не совпадают");
+            }
+            user.setPassword(passwordEncoder.encode(profileDTO.getPassword()));
+        }
 
         user.setFirstName(profileDTO.getFirstName());
         user.setLastName(profileDTO.getLastName());
         user.setEmail(profileDTO.getEmail());
-
-        if (profileDTO.getPassword() != null && !profileDTO.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(profileDTO.getPassword()));
-        }
 
         userRepository.save(user);
         return true;

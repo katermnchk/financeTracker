@@ -2,7 +2,6 @@ package org.example.financetracker.controller;
 
 import jakarta.validation.Valid;
 import org.example.financetracker.dto.UserProfileDTO;
-import org.example.financetracker.entity.User;
 import org.example.financetracker.security.CustomUserDetails;
 import org.example.financetracker.service.UserService;
 import org.slf4j.Logger;
@@ -16,8 +15,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.security.Principal;
 
 @Controller
 @RequestMapping("/profile")
@@ -39,32 +36,48 @@ public class ProfileController {
             return "redirect:/login";
         }
 
-        User user = userDetails.getUser();
-        logger.info("Пользователь нашел: {}", user.getUsername());
-
-        model.addAttribute("profile", userService.getUserProfile(user));
-        model.addAttribute("username", user.getUsername());
+        model.addAttribute("profile", userService.getUserProfile(userDetails.getUser()));
+        model.addAttribute("username", userDetails.getUsername());
 
         return "profile";
     }
 
     @PostMapping
     public String updateProfile(@Valid @ModelAttribute("profile") UserProfileDTO profileDTO,
-                                BindingResult bindingResult, Principal principal,
+                                BindingResult bindingResult,
+                                @AuthenticationPrincipal CustomUserDetails userDetails,
+                                Model model,
                                 RedirectAttributes redirectAttributes) {
+        logger.info("Entering updateProfile method");
+
+        if (userDetails == null) {
+            logger.warn("UserDetails = null");
+            return "redirect:/login";
+        }
+
+        String username = userDetails.getUsername();
+        model.addAttribute("username", username);
+
         if (bindingResult.hasErrors()) {
+            logger.warn("Validation errors: {}", bindingResult.getAllErrors());
             return "profile";
         }
 
-        String username = principal.getName();
-        boolean isUpdated = userService.updateUserProfile(username, profileDTO);
-
-        if (isUpdated) {
-            redirectAttributes.addAttribute("success", true);
-        } else {
-            redirectAttributes.addAttribute("error", "Не удалось обновить профиль");
+        try {
+            boolean isUpdated = userService.updateUserProfile(username, profileDTO);
+            if (isUpdated) {
+                redirectAttributes.addFlashAttribute("success", true);
+                // Перезагружаем обновлённые данные
+                model.addAttribute("profile", userService.getUserProfile(userDetails.getUser()));
+                return "redirect:/profile";
+            } else {
+                model.addAttribute("error", "Не удалось обновить профиль");
+                return "profile";
+            }
+        } catch (IllegalArgumentException e) {
+            logger.error("Error updating profile: {}", e.getMessage());
+            model.addAttribute("error", e.getMessage());
+            return "profile";
         }
-
-        return "redirect:/profile";
     }
 }

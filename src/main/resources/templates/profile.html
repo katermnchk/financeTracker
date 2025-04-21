@@ -14,7 +14,7 @@
                     <h3>Профиль пользователя: <span th:text="${username}"></span></h3>
                 </div>
                 <div class="card-body">
-                    <div th:if="${param.success}" class="alert alert-success">Профиль успешно обновлён</div>
+                    <div th:if="${success}" class="alert alert-success">Профиль успешно обновлён</div>
                     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
                     <form th:action="@{/profile}" th:object="${profile}" method="post" class="needs-validation" novalidate>
@@ -34,13 +34,22 @@
                             <div class="invalid-feedback" th:errors="*{email}"></div>
                         </div>
                         <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Текущий пароль</label>
+                            <input type="password" class="form-control" id="currentPassword" th:field="*{currentPassword}" required/>
+                            <div class="invalid-feedback" th:errors="*{currentPassword}"></div>
+                        </div>
+                        <div class="mb-3">
                             <label for="password" class="form-label">Новый пароль (оставьте пустым, если не меняете)</label>
                             <input type="password" class="form-control" id="password" th:field="*{password}"/>
                             <div class="invalid-feedback" th:errors="*{password}"></div>
                         </div>
-
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Подтверждение нового пароля</label>
+                            <input type="password" class="form-control" id="confirmPassword" th:field="*{confirmPassword}"/>
+                            <div class="invalid-feedback" th:errors="*{confirmPassword}"></div>
+                        </div>
                         <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                        <a th:href="@{/dashboard}" class="btn btn-outline-secondary">Назад</a>
+                        <a th:href="@{/dashboard}" class="btn btn-outline-secondary ms-2">Назад</a>
                     </form>
                 </div>
             </div>

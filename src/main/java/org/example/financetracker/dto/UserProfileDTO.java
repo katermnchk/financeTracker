@@ -28,4 +28,7 @@ public class UserProfileDTO {
     private String password;
 
     private String confirmPassword;
+
+    @NotBlank(message = "Текущий пароль обязателен")
+    private String currentPassword;
 }
