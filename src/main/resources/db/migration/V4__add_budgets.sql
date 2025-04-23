@@ -1,0 +1,7 @@
+CREATE TABLE budgets (
+    id BIGSERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "limit" DECIMAL(19,2) NOT NULL,
+    month DATE NOT NULL
+);

@@ -2,6 +2,7 @@ package org.example.financetracker.service;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import org.example.financetracker.dto.AnalyticsDTO;
 import org.example.financetracker.dto.TransactionDTO;
 import org.example.financetracker.entity.Account;
 import org.example.financetracker.entity.Category;
@@ -13,8 +14,10 @@ import org.example.financetracker.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -43,10 +46,10 @@ public class TransactionService {
 
         Account account = accountRepository.findById(transactionDTO.getAccountId())
                 .filter(a -> a.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Счет не найден с таким ID: " + transactionDTO.getAccountId()));
+                .orElseThrow(() -> new IllegalArgumentException("Счет не найден с ID: " + transactionDTO.getAccountId()));
 
         Category category = categoryRepository.findById(transactionDTO.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Категория не найдена с таким ID: " + transactionDTO.getCategoryId()));
+                .orElseThrow(() -> new IllegalArgumentException("Категория не найдена с ID: " + transactionDTO.getCategoryId()));
         if (!category.getIsDefault() && (category.getUser() == null || !category.getUser().getId().equals(user.getId()))) {
             throw new SecurityException("Категория недоступна для этого пользователя");
         }
@@ -84,8 +87,8 @@ public class TransactionService {
             transactionRepository.save(transaction);
             System.out.println("Транзакция успешно сохранена: " + transaction);
         } catch (Exception e) {
-            System.err.println("ОШибка сохранения транзакции: " + e.getMessage());
-            throw new RuntimeException("ОШибка сохранения транзакции", e);
+            System.err.println("Ошибка сохранения транзакции: " + e.getMessage());
+            throw new RuntimeException("Ошибка сохранения транзакции", e);
         }
     }
 
@@ -102,9 +105,9 @@ public class TransactionService {
 
         Account account = accountRepository.findById(transactionDTO.getAccountId())
                 .filter(a -> a.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Account not found with ID: " + transactionDTO.getAccountId()));
+                .orElseThrow(() -> new IllegalArgumentException("Счет не найден с ID: " + transactionDTO.getAccountId()));
 
-        //откат баланса
+        // Откат баланса
         BigDecimal oldAmount = transaction.getAmount();
         String oldType = transaction.getType();
         if ("INCOME".equals(oldType)) {
@@ -132,9 +135,9 @@ public class TransactionService {
         accountRepository.save(account);
 
         Category category = categoryRepository.findById(transactionDTO.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found with ID: " + transactionDTO.getCategoryId()));
+                .orElseThrow(() -> new IllegalArgumentException("Категория не найдена с ID: " + transactionDTO.getCategoryId()));
         if (!category.getIsDefault() && (category.getUser() == null || !category.getUser().getId().equals(user.getId()))) {
-            throw new SecurityException("Category is not accessible to this user");
+            throw new SecurityException("Категория недоступна для этого пользователя");
         }
 
         transaction.setAccount(account);
@@ -143,26 +146,26 @@ public class TransactionService {
         transaction.setType(newType);
         transaction.setDescription(transactionDTO.getDescription());
         LocalDateTime transactionDate = transactionDTO.getDate() != null ? transactionDTO.getDate() : LocalDateTime.now();
-        System.out.println("Setting transaction date: " + transactionDate);
+        System.out.println("Установка даты транзакции: " + transactionDate);
         transaction.setDate(transactionDate);
 
         try {
             transactionRepository.save(transaction);
-            System.out.println("Transaction updated successfully: " + transaction);
+            System.out.println("Транзакция успешно обновлена: " + transaction);
         } catch (Exception e) {
-            System.err.println("Error updating transaction: " + e.getMessage());
-            throw new RuntimeException("Failed to update transaction", e);
+            System.err.println("Ошибка обновления транзакции: " + e.getMessage());
+            throw new RuntimeException("Ошибка обновления транзакции", e);
         }
     }
 
     @Transactional
     public void deleteTransaction(Long id, User user) {
-        System.out.println("Deleting transaction with ID: " + id);
+        System.out.println("Удаление транзакции с ID: " + id);
         Transaction transaction = transactionRepository.findById(id)
                 .filter(t -> t.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found or access denied"));
+                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена или доступ запрещён"));
 
-        //откат баланса
+        // Откат баланса
         Account account = transaction.getAccount();
         BigDecimal amount = transaction.getAmount();
         String type = transaction.getType();
@@ -174,13 +177,13 @@ public class TransactionService {
         accountRepository.save(account);
 
         transactionRepository.delete(transaction);
-        System.out.println("Transaction deleted successfully: " + id);
+        System.out.println("Транзакция успешно удалена: " + id);
     }
 
     public Transaction findByIdAndUser(Long id, User user) {
         return transactionRepository.findById(id)
                 .filter(t -> t.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found or access denied"));
+                .orElseThrow(() -> new IllegalArgumentException("Транзакция не найдена или доступ запрещён"));
     }
 
     public List<Transaction> getAccountTransactions(Account account) {
@@ -190,5 +193,65 @@ public class TransactionService {
     @Transactional
     public void createTransaction(@Valid TransactionDTO transactionDTO, User user) {
         saveTransaction(transactionDTO, user);
+    }
+
+    public Map<String, Map<String, BigDecimal>> getIncomeAndExpensesByCategory(User user) {
+        List<Transaction> transactions = transactionRepository.findByUser(user);
+        return transactions.stream()
+                .filter(t -> t.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                        t -> t.getCategory().getName(),
+                        Collectors.groupingBy(
+                                Transaction::getType,
+                                Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                        )
+                ));
+    }
+
+    public Map<String, BigDecimal> getExpensesByCategory(User user) {
+        List<Transaction> transactions = transactionRepository.findByUser(user);
+        return transactions.stream()
+                .filter(t -> t.getCategory() != null && "EXPENSE".equals(t.getType()))
+                .collect(Collectors.groupingBy(
+                        t -> t.getCategory().getName(),
+                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                ));
+    }
+
+    public List<AnalyticsDTO> getAnalytics(Long userId, LocalDateTime start, LocalDateTime end, String type) {
+        Objects.requireNonNull(userId, "ID пользователя не может быть null");
+        Objects.requireNonNull(start, "Начальная дата не может быть null");
+        Objects.requireNonNull(end, "Конечная дата не может быть null");
+
+        List<Transaction> transactions = transactionRepository.findByUserIdAndDateBetween(
+                userId,
+                start,
+                end
+        );
+        System.out.println("Транзакции для аналитики userId=" + userId + ", start=" + start + ", end=" + end + ", type=" + (type != null ? type : "all") + ": " + transactions);
+
+        if (transactions.isEmpty()) {
+            System.out.println("Предупреждение: Транзакции не найдены для userId=" + userId + ", period=" + start + " to " + end);
+        }
+
+        Map<String, AnalyticsDTO> analyticsMap = new HashMap<>();
+        for (Transaction t : transactions) {
+            if (type != null && !type.isEmpty() && !t.getType().equals(type)) {
+                continue;
+            }
+            String categoryName = t.getCategory() != null ? t.getCategory().getName() : "Без категории";
+            analyticsMap.compute(categoryName, (key, value) -> {
+                if (value == null) {
+                    return new AnalyticsDTO(categoryName, t.getAmount(), t.getType());
+                } else {
+                    value.setAmount(value.getAmount().add(t.getAmount()));
+                    return value;
+                }
+            });
+        }
+
+        List<AnalyticsDTO> result = new ArrayList<>(analyticsMap.values());
+        System.out.println("Результат аналитики: " + result);
+        return result;
     }
 }

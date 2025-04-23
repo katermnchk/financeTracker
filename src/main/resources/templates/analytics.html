@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Finance Tracker - Аналитика</title>
+    <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+<script src="/webjars/chart.js/4.1.2/dist/chart.umd.js"></script>
+
+<div class="container py-5">
+    <h2 class="text-primary mb-4">Аналитика транзакций</h2>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <i class="bi bi-pie-chart"></i> Фильтры
+        </div>
+        <div class="card-body">
+            <form th:action="@{/analytics}" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">Начальная дата</label>
+                    <input type="date" class="form-control" id="startDate" name="startDate" th:value="${startDate != null} ? ${#temporals.format(startDate, 'yyyy-MM-dd')}"/>
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">Конечная дата</label>
+                    <input type="date" class="form-control" id="endDate" name="endDate" th:value="${endDate != null} ? ${#temporals.format(endDate, 'yyyy-MM-dd')}"/>
+                </div>
+                <div class="col-md-4">
+                    <label for="type" class="form-label">Тип</label>
+                    <select class="form-control" id="type" name="type">
+                        <option value="" th:selected="${type == null}">Все</option>
+                        <option value="INCOME" th:selected="${type == 'INCOME'}">Доходы</option>
+                        <option value="EXPENSE" th:selected="${type == 'EXPENSE'}">Расходы</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <i class="bi bi-pie-chart-fill"></i> Аналитика транзакций по категориям
+        </div>
+        <div class="pie-body">
+            <!--<div th:if="${analyticsDataJson != null}">
+               &lt;!&ndash; <p>Тип analyticsData: <span th:text="${analyticsDataJson.getClass().getName()}"></span></p>
+                <p>Содержимое analyticsData: <span th:text="${analyticsDataJson}"></span></p>&ndash;&gt;
+            </div>-->
+            <div th:if="${analyticsDataJson == null or analyticsDataJson.isEmpty()}" class="alert alert-info">
+                Нет транзакций для отображения. Проверьте период или добавьте транзакции.
+            </div>
+            <canvas id="pieChart" width="400" height="400" th:if="${analyticsDataJson != null and !analyticsDataJson.isEmpty()}"></canvas>
+        </div>
+    </div>
+    <a th:href="@{/dashboard}" class="btn btn-outline-secondary ms-2">
+        <i class="bi bi-arrow-left-circle"></i> Назад
+    </a>
+</div>
+
+<script th:inline="javascript">
+    let analyticsData = JSON.parse(/*[[${analyticsDataJson}]]*/ '[]');
+
+    console.log("analyticsData:", analyticsData);
+
+    const labels = analyticsData.map(item => item.categoryName || 'Без категории');
+    const amounts = analyticsData.map(item => item.amount ? Number(item.amount) : 0);
+
+    new Chart(document.getElementById("pieChart"), {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: amounts,
+                backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            return `${label}: ${value} BYN`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
