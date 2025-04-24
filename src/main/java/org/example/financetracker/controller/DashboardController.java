@@ -7,10 +7,7 @@ import org.example.financetracker.repository.AccountRepository;
 import org.example.financetracker.repository.CategoryRepository;
 import org.example.financetracker.repository.UserRepository;
 import org.example.financetracker.security.CustomUserDetails;
-import org.example.financetracker.service.AccountService;
-import org.example.financetracker.service.BudgetService;
-import org.example.financetracker.service.CategoryService;
-import org.example.financetracker.service.TransactionService;
+import org.example.financetracker.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -36,20 +33,20 @@ public class DashboardController {
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final CategoryService categoryService;
-    private final BudgetService budgetService;
+    private final GoalService goalService;
 
     @Autowired
     public DashboardController(UserRepository userRepository, AccountService accountService,
                                TransactionService transactionService, AccountRepository accountRepository,
                                CategoryRepository categoryRepository, CategoryService categoryService,
-                               BudgetService budgetService) {
+                               GoalService goalService) {
         this.userRepository = userRepository;
         this.accountService = accountService;
         this.transactionService = transactionService;
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
         this.categoryService = categoryService;
-        this.budgetService = budgetService;
+        this.goalService = goalService;
     }
 
     @GetMapping("/dashboard")
@@ -63,23 +60,26 @@ public class DashboardController {
                 .map(Account::getBalance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
         Map<String, Map<String, BigDecimal>> incomesByCategory = transactionService.getIncomeAndExpensesByCategory(user);
-        List<Budget> budgets = budgetService.getBudgetsForMonth(user.getId(), LocalDate.now().withDayOfMonth(1));
+        //List<Budget> budgets = budgetService.getBudgetsForMonth(user.getId(), LocalDate.now().withDayOfMonth(1));
+        List<Goal> goals = goalService.getGoalsForMonth(user.getId(), currentMonth);
 
         System.out.println("Передача данных в dashboard.html: username=" + user.getUsername() +
                 ", accounts=" + accounts +
                 ", totalBalance=" + totalBalance +
                 ", barChartData=" + incomesByCategory +
-                ", budgets=" + budgets +
-                ", budgets type=" + (budgets != null ? budgets.getClass().getName() : "null"));
+                ", goals=" + goals +
+                ", budgets type=" + (goals != null ? goals.getClass().getName() : "null"));
 
         model.addAttribute("username", user.getUsername());
         model.addAttribute("accounts", accounts);
         model.addAttribute("newAccount", new Account());
         model.addAttribute("totalBalance", totalBalance);
         model.addAttribute("barChartData", incomesByCategory);
-        model.addAttribute("budgets", budgets);
-        model.addAttribute("budgetService", budgetService);
+        model.addAttribute("goals", goals != null ? goals : List.of());
+        model.addAttribute("goalService", goalService);
 
         return "dashboard";
     }
