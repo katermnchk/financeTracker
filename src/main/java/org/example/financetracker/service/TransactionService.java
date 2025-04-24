@@ -14,7 +14,6 @@ import org.example.financetracker.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,7 +45,7 @@ public class TransactionService {
 
         Account account = accountRepository.findById(transactionDTO.getAccountId())
                 .filter(a -> a.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Счет не найден с ID: " + transactionDTO.getAccountId()));
+                .orElseThrow(() -> new IllegalArgumentException("Счёт не найден с ID: " + transactionDTO.getAccountId()));
 
         Category category = categoryRepository.findById(transactionDTO.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Категория не найдена с ID: " + transactionDTO.getCategoryId()));
@@ -55,16 +54,18 @@ public class TransactionService {
         }
 
         BigDecimal amount = transactionDTO.getAmount();
+        // Валидация суммы (уже есть в DTO, но оставим для надёжности)
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Сумма должна быть больше нуля");
+            throw new IllegalArgumentException("Сумма транзакции должна быть больше 0");
         }
+
         String type = transactionDTO.getType();
         if ("INCOME".equals(type)) {
             account.setBalance(account.getBalance().add(amount));
         } else if ("EXPENSE".equals(type)) {
             BigDecimal newBalance = account.getBalance().subtract(amount);
             if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("Недостаточно средств на счёте");
+                throw new IllegalArgumentException("Недостаточно средств на счёте. Текущий баланс: " + account.getBalance() + " BYN");
             }
             account.setBalance(newBalance);
         } else {
@@ -105,7 +106,7 @@ public class TransactionService {
 
         Account account = accountRepository.findById(transactionDTO.getAccountId())
                 .filter(a -> a.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Счет не найден с ID: " + transactionDTO.getAccountId()));
+                .orElseThrow(() -> new IllegalArgumentException("Счёт не найден с ID: " + transactionDTO.getAccountId()));
 
         // Откат баланса
         BigDecimal oldAmount = transaction.getAmount();
@@ -117,16 +118,18 @@ public class TransactionService {
         }
 
         BigDecimal newAmount = transactionDTO.getAmount();
+        // Валидация суммы
         if (newAmount == null || newAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Сумма должна быть больше нуля");
+            throw new IllegalArgumentException("Сумма транзакции должна быть больше 0");
         }
+
         String newType = transactionDTO.getType();
         if ("INCOME".equals(newType)) {
             account.setBalance(account.getBalance().add(newAmount));
         } else if ("EXPENSE".equals(newType)) {
             BigDecimal newBalance = account.getBalance().subtract(newAmount);
             if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("Недостаточно средств на счёте");
+                throw new IllegalArgumentException("Недостаточно средств на счёте. Текущий баланс: " + account.getBalance() + " BYN");
             }
             account.setBalance(newBalance);
         } else {

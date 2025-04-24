@@ -1,118 +1,139 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Finance Tracker - Транзакции</title>
+    <meta charset="UTF-8">
+    <title>Finance Tracker - Транзакция</title>
     <link href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
-<body class="bg-light">
+<body>
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-9">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
-                    <h3 th:text="${transaction.id != null} ? 'Редактировать транзакцию' : 'Создать новую транзакцию'"></h3>
+    <h2 class="text-primary mb-4" th:text="${transaction.id != null} ? 'Редактировать транзакцию' : 'Добавить транзакцию'"></h2>
+
+    <div class="mb-4">
+        <a th:href="@{/dashboard}" class="btn btn-outline-primary">
+            <i class="bi bi-house"></i> На главную
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <i class="bi bi-plus-circle"></i> <span th:text="${transaction.id != null} ? 'Редактирование транзакции' : 'Новая транзакция'"></span>
+        </div>
+        <div class="card-body">
+            <form th:action="${transaction.id != null} ? @{/transactions/edit/{id}(id=${transaction.id})} : @{/transactions/add}"
+                  th:object="${transaction}" method="post" id="transactionForm">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="mb-3">
+                    <label for="accountId" class="form-label">Счёт</label>
+                    <select class="form-control" id="accountId" th:field="*{accountId}" required>
+                        <option value="" disabled selected>Выберите счёт</option>
+                        <option th:each="account : ${accounts}"
+                                th:value="${account.id}"
+                                th:text="${account.name} + ' (' + ${account.balance} + ' BYN)'"
+                                th:data-balance="${account.balance}"></option>
+                    </select>
+                    <div class="invalid-feedback">Пожалуйста, выберите счёт</div>
                 </div>
-                <div class="card-body">
 
-                    <!-- Общая форма: редактирование или добавление -->
-                    <form th:action="${transaction.id != null} ? @{'/transactions/edit/' + ${transaction.id}} : @{/transactions/add}"
-                          th:object="${transaction}" method="post" novalidate>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="accountId" class="form-label">Счёт</label>
-                                <select class="form-select" id="accountId" th:field="*{accountId}" required>
-                                    <option value="">Выберите счёт</option>
-                                    <option th:each="account : ${accounts}"
-                                            th:value="${account.id}"
-                                            th:text="${account.name}"></option>
-                                </select>
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('accountId')}" th:errors="*{accountId}"></div>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="categoryId" class="form-label">Категория</label>
-                                <select class="form-select" id="categoryId" th:field="*{categoryId}" required>
-                                    <option value="">Выберите категорию</option>
-                                    <option th:each="category : ${availableCategories}"
-                                            th:value="${category.id}"
-                                            th:text="${category.name}"></option>
-                                </select>
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="amount" class="form-label">Сумма</label>
-                                <input type="number" step="0.01" class="form-control" id="amount" th:field="*{amount}" required/>
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></div>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="type" class="form-label">Тип</label>
-                                <select class="form-select" id="type" th:field="*{type}" required>
-                                    <option value="INCOME">Доход</option>
-                                    <option value="EXPENSE">Расход</option>
-                                </select>
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Описание</label>
-                            <input type="text" class="form-control" id="description" th:field="*{description}"/>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="date" class="form-label">Дата</label>
-                            <input type="datetime-local" class="form-control" id="date" th:field="*{date}" required/>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('date')}" th:errors="*{date}"></div>
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary px-4">Сохранить</button>
-                            <a th:href="@{/dashboard}" class="btn btn-outline-secondary">Отмена</a>
-                        </div>
-                    </form>
-
-                    <div class="mt-5" th:if="${transactions != null and !transactions.isEmpty()}">
-                        <h4 class="mb-3">История транзакций</h4>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-bordered align-middle text-center">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>Дата</th>
-                                    <th>Тип</th>
-                                    <th>Сумма</th>
-                                    <th>Описание</th>
-                                    <th>Действия</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="transaction : ${transactions}">
-                                    <td th:text="${#temporals.format(transaction.date, 'yyyy-MM-dd HH:mm')}"></td>
-                                    <td th:text="${transaction.type == 'INCOME' ? 'Доход' : 'Расход'}"></td>
-                                    <td th:text="${transaction.amount}"></td>
-                                    <td th:text="${transaction.description} ?: 'Нет описания'"></td>
-                                    <td>
-                                        <a th:href="@{/transactions/edit/{id}(id=${transaction.id})}" class="btn btn-sm btn-info me-1">Редактировать️</a>
-                                        <form th:action="@{/transactions/delete/{id}(id=${transaction.id})}" method="post" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-danger">Удалить️</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
+                <div class="mb-3">
+                    <label for="categoryId" class="form-label">Категория</label>
+                    <select class="form-control" id="categoryId" th:field="*{categoryId}" required>
+                        <option value="" disabled selected>Выберите категорию</option>
+                        <option th:each="category : ${availableCategories}"
+                                th:value="${category.id}"
+                                th:text="${category.name}"></option>
+                    </select>
+                    <div class="invalid-feedback">Пожалуйста, выберите категорию</div>
                 </div>
-            </div>
+
+                <div class="mb-3">
+                    <label for="amount" class="form-label">Сумма (BYN)</label>
+                    <input type="number" class="form-control" id="amount" th:field="*{amount}"
+                           step="0.01" min="0.01" required/>
+                    <div class="invalid-feedback" id="amountError"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="type" class="form-label">Тип</label>
+                    <select class="form-control" id="type" th:field="*{type}" required>
+                        <option value="" disabled selected>Выберите тип</option>
+                        <option value="INCOME">Доход</option>
+                        <option value="EXPENSE">Расход</option>
+                    </select>
+                    <div class="invalid-feedback">Пожалуйста, выберите тип транзакции</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Описание</label>
+                    <input type="text" class="form-control" id="description" th:field="*{description}"/>
+                </div>
+
+                <div class="mb-3">
+                    <label for="date" class="form-label">Дата</label>
+                    <input type="datetime-local" class="form-control" id="date" th:field="*{date}"/>
+                </div>
+
+                <div th:if="${error != null}" class="alert alert-danger">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Сохранить
+                </button>
+            </form>
         </div>
     </div>
 </div>
+
+<script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('transactionForm').addEventListener('submit', function(event) {
+        const amountInput = document.getElementById('amount');
+        const typeSelect = document.getElementById('type');
+        const accountSelect = document.getElementById('accountId');
+        const amountError = document.getElementById('amountError');
+        const amount = parseFloat(amountInput.value);
+        const type = typeSelect.value;
+        const selectedAccount = accountSelect.options[accountSelect.selectedIndex];
+        const balance = parseFloat(selectedAccount.getAttribute('data-balance'));
+        amountInput.classList.remove('is-invalid');
+        amountError.textContent = '';
+
+        if (amount <= 0) {
+            event.preventDefault();
+            amountInput.classList.add('is-invalid');
+            amountError.textContent = 'Сумма должна быть больше 0';
+            return;
+        }
+
+        if (type === 'EXPENSE' && amount > balance) {
+            event.preventDefault();
+            amountInput.classList.add('is-invalid');
+            amountError.textContent = `Недостаточно средств. Текущий баланс: ${balance} BYN`;
+        }
+    });
+
+    document.getElementById('type').addEventListener('change', function() {
+        document.getElementById('amount').dispatchEvent(new Event('input'));
+    });
+    document.getElementById('accountId').addEventListener('change', function() {
+        document.getElementById('amount').dispatchEvent(new Event('input'));
+    });
+
+    (function () {
+        'use strict';
+        const form = document.getElementById('transactionForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    })();
+</script>
 </body>
 </html>

@@ -123,7 +123,7 @@ public class GoalService {
             throw new IllegalArgumentException("Месяц цели не указан");
         }
 
-        // Проверка на дублирование цели
+        // проверка на дублирование цели
         if (goalRepository.existsByUserIdAndCategoryIdAndMonthAndType(user.getId(), categoryId, month, type)) {
             throw new IllegalArgumentException("Цель для категории " + category.getName() + ", месяца " + month + " и типа " + type + " уже существует");
         }

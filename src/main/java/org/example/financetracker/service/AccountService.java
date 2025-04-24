@@ -54,4 +54,5 @@ public class AccountService {
     public Object getAccountsByUser(User user) {
         return accountRepository.findByUser(user);
     }
+
 }

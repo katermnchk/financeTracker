@@ -31,13 +31,16 @@
         </div>
     </div>
 
+    <div th:if="${error != null}" class="alert alert-danger">
+        <span th:text="${error}"></span>
+    </div>
+
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
             Добро пожаловать, <span th:text="${username}"></span>!
         </div>
         <div class="card-body">
             <h4 class="mb-3"><i class="bi bi-wallet2"></i> Ваши счета</h4>
-
             <table class="table table-hover table-bordered align-middle">
                 <thead class="table-light">
                 <tr>
@@ -51,9 +54,9 @@
                     <td th:text="${account.name}"></td>
                     <td th:text="${account.balance} + ' BYN'"></td>
                     <td class="text-center">
-                        <!--<a th:href="@{/transactions/add/{id}(id=${account.id})}" class="btn btn-sm btn-success me-2">
+                        <a th:href="@{/transactions/add/{id}(id=${account.id})}" class="btn btn-sm btn-success me-2">
                             <i class="bi bi-plus-circle"></i> Транзакция
-                        </a>-->
+                        </a>
                         <a th:href="@{/transactions/{id}(id=${account.id})}" class="btn btn-sm btn-info me-2">
                             <i class="bi bi-list-ul"></i> Транзакции
                         </a>
@@ -237,7 +240,6 @@
     });
 </script>
 <script src="/webjars/chart.js/4.1.2/dist/chart.umd.js"></script>
-
 <script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

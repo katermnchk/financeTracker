@@ -103,7 +103,7 @@ public class DashboardController {
         return "redirect:/dashboard";
     }
 
-    @GetMapping("/transactions/{accountId}")
+   /* @GetMapping("/transactions/{accountId}")
     public String viewTransactions(@PathVariable Long accountId, Model model,
                                    @AuthenticationPrincipal CustomUserDetails userDetails) {
         if (userDetails == null) return "redirect:/login?error";
@@ -130,7 +130,7 @@ public class DashboardController {
         model.addAttribute("categories", categoryRepository.findByUser(user));
 
         return "transaction-form";
-    }
+    }*/
 
     @PostMapping("/transaction/add/{accountId}")
     public String addTransaction(@PathVariable Long accountId,
