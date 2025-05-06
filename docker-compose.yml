@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: finance-db
+    restart: always
+    environment:
+      POSTGRES_DB: finance_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgresql
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway:latest
+    container_name: flyway-migrations
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/finance_tracker
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: postgresql
+    depends_on:
+      - postgres
+    command: -locations=filesystem:/sql migrate
+    volumes:
+      - ./src/main/resources/db/migration:/sql
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance-app
+    depends_on:
+      - postgres
+      - flyway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/finance_tracker
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgresql
+    restart: always
+
+volumes:
+  postgres_data:
